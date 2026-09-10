@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重大交通事故通報系統 - 監理所專用</title>
+  <title>重大交通事故通報系統 - 新竹區監理所</title>
   <style>
     :root {
       --bg-color: #f8f9fa;
@@ -27,6 +27,7 @@
       height: 100vh;
     }
 
+    /* 頂部標題 */
     header {
       background-color: var(--card-bg);
       border-bottom: 1px solid var(--border-color);
@@ -37,35 +38,19 @@
     }
     header h1 { margin: 0; font-size: 1.2rem; color: #202124; }
     header p { margin: 4px 0 0; font-size: 0.85rem; color: #5f6368; }
-        
-    .header-btns {
-      margin-top: 8px;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-    }
 
-    .btn-sm {
+    .reset-top-btn {
+      margin-top: 8px;
       padding: 5px 12px;
+      background-color: #fff;
+      color: var(--danger-color);
+      border: 1px solid var(--danger-color);
       border-radius: 4px;
       font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.2s;
     }
-
-    .reset-top-btn {
-      background-color: #fff;
-      color: var(--danger-color);
-      border: 1px solid var(--danger-color);
-    }
     .reset-top-btn:hover { background-color: var(--danger-color); color: #fff; }
-
-    .setting-btn {
-      background-color: #fff;
-      color: var(--primary-color);
-      border: 1px solid var(--primary-color);
-    }
-    .setting-btn:hover { background-color: var(--primary-color); color: #fff; }
 
     /* Token 統計列 */
     #token-bar {
@@ -80,6 +65,7 @@
       gap: 15px;
     }
 
+    /* 對話區域 */
     #chat-container {
       flex: 1;
       overflow-y: auto;
@@ -107,6 +93,7 @@
     .user .message-bubble { background-color: var(--user-msg-bg); color: #0d47a1; border-bottom-right-radius: 2px; }
     .ai .message-bubble { background-color: var(--ai-msg-bg); color: #202124; border: 1px solid var(--border-color); border-bottom-left-radius: 2px; }
 
+    /* 時間與 Token 標籤列 */
     .message-info {
       display: flex;
       gap: 10px;
@@ -150,6 +137,7 @@
     }
     .copy-btn:hover { background-color: #f1f3f4; color: var(--primary-color); }
 
+    /* 輸入區域 */
     footer {
       background-color: var(--card-bg);
       border-top: 1px solid var(--border-color);
@@ -217,16 +205,13 @@
 
   <header>
     <h1>新竹區監理所 - 重大交通事故通報格式化工具</h1>
-    <p>支援多輪資訊繼承 | 自動去識別化保護資安</p>
-    <div class="header-btns">
-      <button class="btn-sm reset-top-btn" onclick="resetConversation(true)">🔄 開立新案件 (清空歷史)</button>
-      <button class="btn-sm setting-btn" onclick="promptGasUrl()">⚙️ 設定後端網址</button>
-    </div>
+    <p>支援多輪資訊繼承 | 輸入「結案」或「reset」自動重置記憶</p>
+    <button class="reset-top-btn" onclick="resetConversation(true)">🔄 手動開立新案件 (清空歷史)</button>
   </header>
 
-  <!-- Token 總計顯示列 -->
+  <!-- Token 統計面板 -->
   <div id="token-bar">
-    <span>📊 本次案件累積 Token: <strong id="session-tokens">0</strong></span>
+    <span>📊 本案累積 Token 消耗: <strong id="session-tokens">0</strong></span>
   </div>
 
   <main id="chat-container"></main>
@@ -239,8 +224,8 @@
   </footer>
 
   <script>
-    // 儲存於 LocalStorage，防止敏感後端網址直接出現在 GitHub 開放程式碼中
-    let gasWebAppUrl = localStorage.getItem('GAS_WEB_APP_URL') || '';
+    // GitHub Actions 部署時會自動將 ___GAS_URL_PLACEHOLDER___ 替換為你的 Secrets 網址
+    const GAS_WEB_APP_URL = "___GAS_URL_PLACEHOLDER___";
 
     const chatContainer = document.getElementById('chat-container');
     const userInput = document.getElementById('userInput');
@@ -248,16 +233,7 @@
     const sessionTokensEl = document.getElementById('session-tokens');
 
     let conversationHistory = [];
-    let totalSessionTokens = 0; // 紀錄累積 Token
-
-    function promptGasUrl() {
-      const url = prompt("請輸入您的 GAS Web App 發布網址 (以 /exec 結尾)：", gasWebAppUrl);
-      if (url) {
-        gasWebAppUrl = url.trim();
-        localStorage.setItem('GAS_WEB_APP_URL', gasWebAppUrl);
-        alert("✅ 後端網址設定成功！");
-      }
-    }
+    let totalSessionTokens = 0;
 
     function autoResizeTextarea() {
       userInput.style.height = 'auto';
@@ -276,10 +252,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      if (!gasWebAppUrl) {
-        promptGasUrl();
-      }
-      appendMessage('ai', '👋 你好！請貼上事故資訊。後續若有補充資料，直接輸入即可，我會自動更新通報內容。');
+      appendMessage('ai', '👋 你好！請貼上事故資訊。後續若有補充資料（如新增車號、駕駛人姓名），直接在下方輸入即可，我會自動更新通報簡訊內容。');
     });
 
     function resetConversation(showAlert = false) {
@@ -293,11 +266,6 @@
     }
 
     async function sendMessage() {
-      if (!gasWebAppUrl) {
-        alert("⚠️ 未設定後端網址，請先點擊上方「⚙️ 設定後端網址」按鈕");
-        return;
-      }
-
       const text = userInput.value.trim();
       if (!text) return;
 
@@ -318,7 +286,7 @@
       const aiTokenEl = aiRowEl.querySelector('.message-token');
 
       try {
-        const response = await fetch(gasWebAppUrl, {
+        const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({ history: conversationHistory })
@@ -331,7 +299,7 @@
         if (data.reply) {
           aiBubbleTextEl.innerText = data.reply;
 
-          // 更新 Token 資訊
+          // 計算並顯示當次與累積 Token 數
           if (data.usage) {
             const thisRoundTokens = data.usage.totalTokens || 0;
             totalSessionTokens += thisRoundTokens;
@@ -344,12 +312,13 @@
             totalSessionTokens = 0;
             const noticeEl = document.createElement('div');
             noticeEl.className = 'system-notice';
-            noticeEl.innerText = "─── 本案已結案，對話記憶與 Token 累積已自動重置 ───";
+            noticeEl.innerText = "─── 本案已結案，對話記憶與 Token 統計已自動重置 ───";
             chatContainer.appendChild(noticeEl);
           } else {
             conversationHistory.push({ role: "model", text: data.reply });
           }
 
+          // 一鍵複製按鈕
           const actionsEl = document.createElement('div');
           actionsEl.className = 'message-actions';
           const copyBtn = document.createElement('button');
@@ -408,7 +377,7 @@
       return row;
     }
 
-  function scrollToBottom() {
+    function scrollToBottom() {
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
